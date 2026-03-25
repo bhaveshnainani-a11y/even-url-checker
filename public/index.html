@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Even Google Ads URL Health Checker</title>
+<style>
+  :root { --bg: #0f1117; --card: #1a1d27; --border: #2a2d3a; --text: #e4e4e7; --muted: #71717a; --green: #22c55e; --red: #ef4444; --yellow: #eab308; --blue: #3b82f6; --purple: #a855f7; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+  header h1 { font-size: 24px; font-weight: 700; }
+  header h1 span { color: var(--blue); }
+  .header-actions { display: flex; gap: 12px; align-items: center; }
+  .timestamp { color: var(--muted); font-size: 13px; }
+
+  .btn { padding: 8px 20px; border-radius: 8px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .btn-primary { background: var(--blue); color: white; }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .stat-card .label { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
+  .stat-card .value { font-size: 32px; font-weight: 700; }
+  .stat-card.up .value { color: var(--green); }
+  .stat-card.down .value { color: var(--red); }
+  .stat-card.redirect .value { color: var(--yellow); }
+  .stat-card.total .value { color: var(--blue); }
+  .stat-card.active .value { color: var(--purple); }
+
+  .filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-btn { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 13px; cursor: pointer; transition: all 0.2s; }
+  .filter-btn:hover { border-color: var(--blue); }
+  .filter-btn.active { background: var(--blue); border-color: var(--blue); color: white; }
+
+  .search-bar { width: 100%; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 14px; margin-bottom: 16px; }
+  .search-bar:focus { outline: none; border-color: var(--blue); }
+
+  table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+  thead th { background: #12141c; padding: 12px 16px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; cursor: pointer; white-space: nowrap; }
+  thead th:hover { color: var(--text); }
+  tbody tr { border-top: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:hover { background: rgba(59,130,246,0.05); }
+  td { padding: 12px 16px; font-size: 13px; vertical-align: middle; }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-up { background: rgba(34,197,94,0.15); color: var(--green); }
+  .badge-down { background: rgba(239,68,68,0.15); color: var(--red); }
+  .badge-redirect { background: rgba(234,179,8,0.15); color: var(--yellow); }
+  .badge-active { background: rgba(168,85,247,0.15); color: var(--purple); }
+  .badge-inactive { background: rgba(113,113,122,0.15); color: var(--muted); }
+
+  .url-cell { max-width: 400px; word-break: break-all; }
+  .url-cell a { color: var(--blue); text-decoration: none; }
+  .url-cell a:hover { text-decoration: underline; }
+
+  .response-time { font-variant-numeric: tabular-nums; }
+  .rt-fast { color: var(--green); }
+  .rt-medium { color: var(--yellow); }
+  .rt-slow { color: var(--red); }
+
+  .error-msg { color: var(--red); font-size: 12px; max-width: 200px; }
+
+  .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; }
+  .spinner { width: 48px; height: 48px; border: 4px solid var(--border); border-top: 4px solid var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { color: var(--muted); font-size: 14px; }
+  .progress-bar { width: 200px; height: 4px; background: var(--border); border-radius: 2px; margin-top: 12px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--blue); border-radius: 2px; animation: progress 12s ease-in-out; }
+  @keyframes progress { from { width: 0%; } to { width: 95%; } }
+
+  .sort-arrow { margin-left: 4px; opacity: 0.5; }
+  .sort-arrow.active { opacity: 1; color: var(--blue); }
+
+  .export-btn { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .export-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+  @media (max-width: 768px) {
+    .container { padding: 12px; }
+    header h1 { font-size: 18px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    td, th { padding: 8px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h1><span>Even</span> Google Ads URL Health Checker</h1>
+      <div class="timestamp" id="timestamp"></div>
+    </div>
+    <div class="header-actions">
+      <button class="btn export-btn" onclick="exportCSV()">Export CSV</button>
+      <button class="btn btn-primary" id="runBtn" onclick="runCheck()">Run Check</button>
+    </div>
+  </header>
+
+  <div class="stats" id="stats" style="display:none">
+    <div class="stat-card total"><div class="label">Total URLs</div><div class="value" id="statTotal">0</div></div>
+    <div class="stat-card up"><div class="label">Up (2xx/3xx)</div><div class="value" id="statUp">0</div></div>
+    <div class="stat-card down"><div class="label">Down / Error</div><div class="value" id="statDown">0</div></div>
+    <div class="stat-card redirect"><div class="label">Redirected</div><div class="value" id="statRedirect">0</div></div>
+    <div class="stat-card active"><div class="label">Active Ads Affected</div><div class="value" id="statActiveDown">0</div></div>
+  </div>
+
+  <input type="text" class="search-bar" id="searchInput" placeholder="Search URLs, campaigns..." oninput="renderTable()" style="display:none">
+
+  <div class="filters" id="filters" style="display:none">
+    <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" data-filter="down" onclick="setFilter('down',this)">Down Only</button>
+    <button class="filter-btn" data-filter="up" onclick="setFilter('up',this)">Up Only</button>
+    <button class="filter-btn" data-filter="redirect" onclick="setFilter('redirect',this)">Redirected</button>
+    <button class="filter-btn" data-filter="active" onclick="setFilter('active',this)">Active Ads</button>
+    <button class="filter-btn" data-filter="inactive" onclick="setFilter('inactive',this)">Inactive Ads</button>
+  </div>
+
+  <div id="content">
+    <div class="loading" id="initialMsg">
+      <p style="color:var(--muted); font-size:16px; margin-bottom:12px;">Click <strong>Run Check</strong> to scan all 68 URLs</p>
+    </div>
+  </div>
+</div>
+
+<script>
+let results = [];
+let currentFilter = 'all';
+let sortCol = 'status';
+let sortDir = 'asc';
+
+async function runCheck() {
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  btn.textContent = 'Checking...';
+  document.getElementById('initialMsg')?.remove();
+  document.getElementById('content').innerHTML = `
+    <div class="loading">
+      <div class="spinner"></div>
+      <div class="loading-text">Checking 68 URLs... this takes ~15 seconds</div>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>`;
+
+  try {
+    const resp = await fetch('/api/check-urls');
+    const data = await resp.json();
+    results = data.results;
+    document.getElementById('timestamp').textContent = `Last checked: ${data.timestamp}`;
+    document.getElementById('stats').style.display = 'grid';
+    document.getElementById('searchInput').style.display = 'block';
+    document.getElementById('filters').style.display = 'flex';
+    updateStats(data);
+    renderTable();
+  } catch (err) {
+    document.getElementById('content').innerHTML = `<div class="loading"><p style="color:var(--red)">Error: ${err.message}. Check console.</p></div>`;
+  }
+  btn.disabled = false;
+  btn.textContent = 'Run Check';
+}
+
+function updateStats(data) {
+  document.getElementById('statTotal').textContent = data.totalChecked;
+  document.getElementById('statUp').textContent = data.totalUp;
+  document.getElementById('statDown').textContent = data.totalDown;
+  document.getElementById('statRedirect').textContent = results.filter(r => r.redirected).length;
+  document.getElementById('statActiveDown').textContent = results.filter(r => !r.ok && r.isActive).length;
+}
+
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderTable();
+}
+
+function getFiltered() {
+  let data = [...results];
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  if (q) data = data.filter(r => r.checkUrl.toLowerCase().includes(q) || (r.error||'').toLowerCase().includes(q));
+  switch(currentFilter) {
+    case 'down': data = data.filter(r => !r.ok); break;
+    case 'up': data = data.filter(r => r.ok); break;
+    case 'redirect': data = data.filter(r => r.redirected); break;
+    case 'active': data = data.filter(r => r.isActive); break;
+    case 'inactive': data = data.filter(r => !r.isActive); break;
+  }
+  data.sort((a, b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    if (typeof va === 'string') { va = va.toLowerCase(); vb = (vb||'').toLowerCase(); }
+    if (va < vb) return sortDir === 'asc' ? -1 : 1;
+    if (va > vb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  return data;
+}
+
+function sortBy(col) {
+  if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  else { sortCol = col; sortDir = 'asc'; }
+  renderTable();
+}
+
+function renderTable() {
+  const data = getFiltered();
+  const arrow = (col) => `<span class="sort-arrow ${sortCol===col?'active':''}">${sortCol===col?(sortDir==='asc'?'â²':'â¼'):'â'}</span>`;
+
+  let html = `<table>
+    <thead><tr>
+      <th onclick="sortBy('checkUrl')">URL ${arrow('checkUrl')}</th>
+      <th onclick="sortBy('status')">Status ${arrow('status')}</th>
+      <th onclick="sortBy('ok')">Health ${arrow('ok')}</th>
+      <th onclick="sortBy('responseTime')">Response Time ${arrow('responseTime')}</th>
+      <th onclick="sortBy('isActive')">Ad Status ${arrow('isActive')}</th>
+      <th onclick="sortBy('totalAds')">Ads Using ${arrow('totalAds')}</th>
+      <th>Details</th>
+    </tr></thead><tbody>`;
+
+  for (const r of data) {
+    const statusBadge = r.ok
+      ? (r.redirected ? `<span class="badge badge-redirect">${r.status} Redirect</span>` : `<span class="badge badge-up">${r.status} OK</span>`)
+      : `<span class="badge badge-down">${r.status || 'ERR'}</span>`;
+    const rtClass = r.responseTime < 500 ? 'rt-fast' : r.responseTime < 2000 ? 'rt-medium' : 'rt-slow';
+    const adBadge = r.isActive ? '<span class="badge badge-active">Active</span>' : '<span class="badge badge-inactive">Inactive</span>';
+    const details = r.error ? `<span class="error-msg">${r.error}</span>` : (r.redirected ? `<span style="font-size:12px;color:var(--muted)">â ${r.finalUrl}</span>` : '');
+
+    html += `<tr>
+      <td class="url-cell"><a href="${r.checkUrl}" target="_blank">${r.checkUrl}</a></td>
+      <td>${statusBadge}</td>
+      <td>${r.ok ? 'â' : 'â'}</td>
+      <td class="response-time ${rtClass}">${r.responseTime}ms</td>
+      <td>${adBadge}</td>
+      <td>${r.totalAds}</td>
+      <td>${details}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('content').innerHTML = html;
+}
+
+function exportCSV() {
+  if (!results.length) return alert('Run a check first');
+  const rows = [['URL','Status Code','OK','Response Time (ms)','Active Ads','Total Ads','Redirected','Final URL','Error']];
+  for (const r of results) {
+    rows.push([r.checkUrl, r.status, r.ok, r.responseTime, r.isActive, r.totalAds, r.redirected, r.finalUrl||'', r.error||'']);
+  }
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `url-check-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// Auto-run on load
+window.addEventListener('load', () => setTimeout(runCheck, 500));
+</script>
+</body>
+</html>

@@ -5,85 +5,79 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Even Google Ads URL Health Checker</title>
 <style>
-  :root { --bg: #0f1117; --card: #1a1d27; --border: #2a2d3a; --text: #e4e4e7; --muted: #71717a; --green: #22c55e; --red: #ef4444; --yellow: #eab308; --blue: #3b82f6; --purple: #a855f7; }
+  :root { --bg: #0f1117; --card: #1a1d27; --border: #2a2d3a; --text: #e4e4e7; --muted: #71717a; --green: #22c55e; --red: #ef4444; --yellow: #eab308; --blue: #3b82f6; --purple: #a855f7; --orange: #f97316; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-
-  .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
-
+  .container { max-width: 1500px; margin: 0 auto; padding: 24px; }
   header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
   header h1 { font-size: 24px; font-weight: 700; }
   header h1 span { color: var(--blue); }
   .header-actions { display: flex; gap: 12px; align-items: center; }
   .timestamp { color: var(--muted); font-size: 13px; }
-
   .btn { padding: 8px 20px; border-radius: 8px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
   .btn-primary { background: var(--blue); color: white; }
   .btn-primary:hover { background: #2563eb; }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
-  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-  .stat-card .label { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
-  .stat-card .value { font-size: 32px; font-weight: 700; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .stat-card .label { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+  .stat-card .value { font-size: 28px; font-weight: 700; }
   .stat-card.up .value { color: var(--green); }
   .stat-card.down .value { color: var(--red); }
   .stat-card.redirect .value { color: var(--yellow); }
   .stat-card.total .value { color: var(--blue); }
   .stat-card.active .value { color: var(--purple); }
-
-  .filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .stat-card.soft404 .value { color: var(--orange); }
+  .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
   .filter-btn { padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 13px; cursor: pointer; transition: all 0.2s; }
   .filter-btn:hover { border-color: var(--blue); }
   .filter-btn.active { background: var(--blue); border-color: var(--blue); color: white; }
-
   .search-bar { width: 100%; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 14px; margin-bottom: 16px; }
   .search-bar:focus { outline: none; border-color: var(--blue); }
-
   table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
-  thead th { background: #12141c; padding: 12px 16px; text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; cursor: pointer; white-space: nowrap; }
+  thead th { background: #12141c; padding: 10px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; cursor: pointer; white-space: nowrap; }
   thead th:hover { color: var(--text); }
   tbody tr { border-top: 1px solid var(--border); transition: background 0.15s; }
   tbody tr:hover { background: rgba(59,130,246,0.05); }
-  td { padding: 12px 16px; font-size: 13px; vertical-align: middle; }
-
+  tbody tr.expanded { background: rgba(59,130,246,0.08); }
+  td { padding: 10px 12px; font-size: 13px; vertical-align: middle; }
   .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
   .badge-up { background: rgba(34,197,94,0.15); color: var(--green); }
   .badge-down { background: rgba(239,68,68,0.15); color: var(--red); }
   .badge-redirect { background: rgba(234,179,8,0.15); color: var(--yellow); }
+  .badge-soft404 { background: rgba(249,115,22,0.15); color: var(--orange); }
   .badge-active { background: rgba(168,85,247,0.15); color: var(--purple); }
   .badge-inactive { background: rgba(113,113,122,0.15); color: var(--muted); }
-
-  .url-cell { max-width: 400px; word-break: break-all; }
+  .url-cell { max-width: 350px; word-break: break-all; }
   .url-cell a { color: var(--blue); text-decoration: none; }
   .url-cell a:hover { text-decoration: underline; }
-
   .response-time { font-variant-numeric: tabular-nums; }
   .rt-fast { color: var(--green); }
   .rt-medium { color: var(--yellow); }
   .rt-slow { color: var(--red); }
-
   .error-msg { color: var(--red); font-size: 12px; max-width: 200px; }
-
   .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; }
   .spinner { width: 48px; height: 48px; border: 4px solid var(--border); border-top: 4px solid var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .loading-text { color: var(--muted); font-size: 14px; }
   .progress-bar { width: 200px; height: 4px; background: var(--border); border-radius: 2px; margin-top: 12px; overflow: hidden; }
-  .progress-fill { height: 100%; background: var(--blue); border-radius: 2px; animation: progress 12s ease-in-out; }
+  .progress-fill { height: 100%; background: var(--blue); border-radius: 2px; animation: progress 30s ease-in-out; }
   @keyframes progress { from { width: 0%; } to { width: 95%; } }
-
   .sort-arrow { margin-left: 4px; opacity: 0.5; }
   .sort-arrow.active { opacity: 1; color: var(--blue); }
-
   .export-btn { background: transparent; border: 1px solid var(--border); color: var(--text); }
   .export-btn:hover { border-color: var(--blue); color: var(--blue); }
-
+  .expand-btn { background: none; border: none; color: var(--blue); cursor: pointer; font-size: 12px; padding: 2px 8px; border-radius: 4px; }
+  .expand-btn:hover { background: rgba(59,130,246,0.1); }
+  .campaign-row td { padding: 6px 12px 6px 40px; font-size: 12px; background: #12141c; }
+  .campaign-row .camp-name { color: var(--blue); }
+  .campaign-row .camp-group { color: var(--muted); }
+  .campaign-header td { padding: 6px 12px 4px 40px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; background: #12141c; border-top: 1px solid var(--border); }
   @media (max-width: 768px) {
     .container { padding: 12px; }
     header h1 { font-size: 18px; }
     .stats { grid-template-columns: repeat(2, 1fr); }
-    td, th { padding: 8px; font-size: 12px; }
+    td, th { padding: 6px; font-size: 11px; }
   }
 </style>
 </head>
@@ -99,63 +93,56 @@
       <button class="btn btn-primary" id="runBtn" onclick="runCheck()">Run Check</button>
     </div>
   </header>
-
   <div class="stats" id="stats" style="display:none">
     <div class="stat-card total"><div class="label">Total URLs</div><div class="value" id="statTotal">0</div></div>
     <div class="stat-card up"><div class="label">Up (2xx/3xx)</div><div class="value" id="statUp">0</div></div>
     <div class="stat-card down"><div class="label">Down / Error</div><div class="value" id="statDown">0</div></div>
+    <div class="stat-card soft404"><div class="label">Soft 404s</div><div class="value" id="statSoft404">0</div></div>
     <div class="stat-card redirect"><div class="label">Redirected</div><div class="value" id="statRedirect">0</div></div>
-    <div class="stat-card active"><div class="label">Active Ads Affected</div><div class="value" id="statActiveDown">0</div></div>
+    <div class="stat-card active"><div class="label">Active Ads Down</div><div class="value" id="statActiveDown">0</div></div>
   </div>
-
-  <input type="text" class="search-bar" id="searchInput" placeholder="Search URLs, campaigns..." oninput="renderTable()" style="display:none">
-
+  <input type="text" class="search-bar" id="searchInput" placeholder="Search URLs, campaigns, ad groups..." oninput="renderTable()" style="display:none">
   <div class="filters" id="filters" style="display:none">
     <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All</button>
     <button class="filter-btn" data-filter="down" onclick="setFilter('down',this)">Down Only</button>
+    <button class="filter-btn" data-filter="soft404" onclick="setFilter('soft404',this)">Soft 404</button>
     <button class="filter-btn" data-filter="up" onclick="setFilter('up',this)">Up Only</button>
     <button class="filter-btn" data-filter="redirect" onclick="setFilter('redirect',this)">Redirected</button>
     <button class="filter-btn" data-filter="active" onclick="setFilter('active',this)">Active Ads</button>
+    <button class="filter-btn" data-filter="activeDown" onclick="setFilter('activeDown',this)">Active + Down</button>
     <button class="filter-btn" data-filter="inactive" onclick="setFilter('inactive',this)">Inactive Ads</button>
   </div>
-
   <div id="content">
     <div class="loading" id="initialMsg">
-      <p style="color:var(--muted); font-size:16px; margin-bottom:12px;">Click <strong>Run Check</strong> to scan all 68 URLs</p>
+      <p style="color:var(--muted); font-size:16px; margin-bottom:12px;">Click <strong>Run Check</strong> to scan all 233 URLs</p>
     </div>
   </div>
 </div>
-
 <script>
 let results = [];
 let currentFilter = 'all';
 let sortCol = 'status';
 let sortDir = 'asc';
+let expandedRows = new Set();
 
 async function runCheck() {
   const btn = document.getElementById('runBtn');
   btn.disabled = true;
   btn.textContent = 'Checking...';
   document.getElementById('initialMsg')?.remove();
-  document.getElementById('content').innerHTML = `
-    <div class="loading">
-      <div class="spinner"></div>
-      <div class="loading-text">Checking 68 URLs... this takes ~15 seconds</div>
-      <div class="progress-bar"><div class="progress-fill"></div></div>
-    </div>`;
-
+  document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div><div class="loading-text">Checking 233 URLs with soft-404 detection... ~30 seconds</div><div class="progress-bar"><div class="progress-fill"></div></div></div>';
   try {
     const resp = await fetch('/api/check-urls');
     const data = await resp.json();
     results = data.results;
-    document.getElementById('timestamp').textContent = `Last checked: ${data.timestamp}`;
+    document.getElementById('timestamp').textContent = 'Last checked: ' + data.timestamp;
     document.getElementById('stats').style.display = 'grid';
     document.getElementById('searchInput').style.display = 'block';
     document.getElementById('filters').style.display = 'flex';
     updateStats(data);
     renderTable();
   } catch (err) {
-    document.getElementById('content').innerHTML = `<div class="loading"><p style="color:var(--red)">Error: ${err.message}. Check console.</p></div>`;
+    document.getElementById('content').innerHTML = '<div class="loading"><p style="color:var(--red)">Error: ' + err.message + '. Check console.</p></div>';
   }
   btn.disabled = false;
   btn.textContent = 'Run Check';
@@ -165,30 +152,44 @@ function updateStats(data) {
   document.getElementById('statTotal').textContent = data.totalChecked;
   document.getElementById('statUp').textContent = data.totalUp;
   document.getElementById('statDown').textContent = data.totalDown;
-  document.getElementById('statRedirect').textContent = results.filter(r => r.redirected).length;
-  document.getElementById('statActiveDown').textContent = results.filter(r => !r.ok && r.isActive).length;
+  document.getElementById('statSoft404').textContent = data.totalSoft404 || 0;
+  document.getElementById('statRedirect').textContent = data.totalRedirected || results.filter(function(r){return r.redirected}).length;
+  document.getElementById('statActiveDown').textContent = data.activeDown || results.filter(function(r){return !r.ok && r.isActive}).length;
 }
 
 function setFilter(f, el) {
   currentFilter = f;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active')});
   el.classList.add('active');
   renderTable();
 }
 
 function getFiltered() {
-  let data = [...results];
-  const q = document.getElementById('searchInput').value.toLowerCase();
-  if (q) data = data.filter(r => r.checkUrl.toLowerCase().includes(q) || (r.error||'').toLowerCase().includes(q));
-  switch(currentFilter) {
-    case 'down': data = data.filter(r => !r.ok); break;
-    case 'up': data = data.filter(r => r.ok); break;
-    case 'redirect': data = data.filter(r => r.redirected); break;
-    case 'active': data = data.filter(r => r.isActive); break;
-    case 'inactive': data = data.filter(r => !r.isActive); break;
+  var data = results.slice();
+  var q = document.getElenuntById('searchInput').value.toLowerCase();
+  if (q) {
+    data = data.filter(function(r) {
+      if (r.checkUrl.toLowerCase().indexOf(q) >= 0) return true;
+      if ((r.error||'').toLowerCase().indexOf(q) >= 0) return true;
+      var camps = r.campaigns || [];
+      for (var i = 0; i < camps.length; i++) {
+        if ((camps[i].c||'').toLowerCase().indexOf(q) >= 0) return true;
+        if ((camps[i].ag||'').toLowerCase().indexOf(q) >= 0) return true;
+      }
+      return false;
+    });
   }
-  data.sort((a, b) => {
-    let va = a[sortCol], vb = b[sortCol];
+  switch(currentFilter) {
+    case 'down': data = data.filter(function(r){return !r.ok}); break;
+    case 'soft404': data = data.filter(function(r){return r.soft404}); break;
+    case 'up': data = data.filter(function(r){return r.ok}); break;
+    case 'redirect': data = data.filter(function(r){return r.redirected}); break;
+    case 'active': data = data.filter(function(r){return r.isActive}); break;
+    case 'activeDown': data = data.filter(function(r){return !r.ok && r.isActive}); break;
+    case 'inactive': data = data.filter(function(r){return !r.isActive}); break;
+  }
+  data.sort(function(a, b) {
+    var va = a[sortCol], vb = b[sortCol];
     if (typeof va === 'string') { va = va.toLowerCase(); vb = (vb||'').toLowerCase(); }
     if (va < vb) return sortDir === 'asc' ? -1 : 1;
     if (va > vb) return sortDir === 'asc' ? 1 : -1;
@@ -203,59 +204,96 @@ function sortBy(col) {
   renderTable();
 }
 
+function toggleExpand(url) {
+  if (expandedRows.has(url)) expandedRows.delete(url);
+  else expandedRows.add(url);
+  renderTable();
+}
+
 function renderTable() {
-  const data = getFiltered();
-  const arrow = (col) => `<span class="sort-arrow ${sortCol===col?'active':''}">${sortCol===col?(sortDir==='asc'?'â²':'â¼'):'â'}</span>`;
+  var data = getFiltered();
+  var arrow = function(col) { return '<span class="sort-arrow ' + (sortCol===col?'active':'') + '">' + (sortCol===col?(sortDir==='asc'?'\u25B2':'\u25BC'):'\u21C5') + '</span>'; };
 
-  let html = `<table>
-    <thead><tr>
-      <th onclick="sortBy('checkUrl')">URL ${arrow('checkUrl')}</th>
-      <th onclick="sortBy('status')">Status ${arrow('status')}</th>
-      <th onclick="sortBy('ok')">Health ${arrow('ok')}</th>
-      <th onclick="sortBy('responseTime')">Response Time ${arrow('responseTime')}</th>
-      <th onclick="sortBy('isActive')">Ad Status ${arrow('isActive')}</th>
-      <th onclick="sortBy('totalAds')">Ads Using ${arrow('totalAds')}</th>
-      <th>Details</th>
-    </tr></thead><tbody>`;
+  var html = '<table><thead><tr>';
+  html += '<th onclick="sortBy(\'checkUrl\')">URL ' + arrow('checkUrl') + '</th>';
+  html += '<th onclick="sortBy(\'status\')">Status ' + arrow('status') + '</th>';
+  html += '<th onclick="sortBy(\'ok\')">Health ' + arrow('ok') + '</th>';
+  html += '<th onclick="sortBy(\'responseTime\')">Response ' + arrow('responseTime') + '</th>';
+  html += '<th onclick="sortBy(\'isActive\')">Ad Status ' + arrow('isActive') + '</th>';
+  html += '<th onclick="sortBy(\'activeAds\')">Active ' + arrow('activeAds') + '</th>';
+  html += '<th onclick="sortBy(\'totalAds\')">Total ' + arrow('totalAds') + '</th>';
+  html += '<th>Campaigns</th>';
+  html += '<th>Details</th>';
+  html += '</tr></thead><tbody>';
 
-  for (const r of data) {
-    const statusBadge = r.ok
-      ? (r.redirected ? `<span class="badge badge-redirect">${r.status} Redirect</span>` : `<span class="badge badge-up">${r.status} OK</span>`)
-      : `<span class="badge badge-down">${r.status || 'ERR'}</span>`;
-    const rtClass = r.responseTime < 500 ? 'rt-fast' : r.responseTime < 2000 ? 'rt-medium' : 'rt-slow';
-    const adBadge = r.isActive ? '<span class="badge badge-active">Active</span>' : '<span class="badge badge-inactive">Inactive</span>';
-    const details = r.error ? `<span class="error-msg">${r.error}</span>` : (r.redirected ? `<span style="font-size:12px;color:var(--muted)">â ${r.finalUrl}</span>` : '');
+  for (var i = 0; i < data.length; i++) {
+    var r = data[i];
+    var statusBadge;
+    if (r.soft404) {
+      statusBadge = '<span class="badge badge-soft404">' + r.status + ' Soft 404</span>';
+    } else if (r.ok) {
+      statusBadge = r.redirected ? '<span class="badge badge-redirect">' + r.status + ' Redirect</span>' : '<span class="badge badge-up">' + r.status + ' OK</span>';
+    } else {
+      statusBadge = '<span class="badge badge-down">' + (r.status || 'ERR') + '</span>';
+    }
+    var rtClass = r.responseTime < 500 ? 'rt-fast' : r.responseTime < 2000 ? 'rt-medium' : 'rt-slow';
+    var adBadge = r.isActive ? '<span class="badge badge-active">Active</span>' : '<span class="badge badge-inactive">Inactive</span>';
+    var details = r.error ? '<span class="error-msg">' + r.error + '</span>' : (r.redirected ? '<span style="font-size:11px;color:var(--muted)">\u2192 ' + r.finalUrl + '</span>' : '');
+    var camps = r.campaigns || [];
+    var campCount = camps.length;
+    var isExpanded = expandedRows.has(r.checkUrl);
 
-    html += `<tr>
-      <td class="url-cell"><a href="${r.checkUrl}" target="_blank">${r.checkUrl}</a></td>
-      <td>${statusBadge}</td>
-      <td>${r.ok ? 'â' : 'â'}</td>
-      <td class="response-time ${rtClass}">${r.responseTime}ms</td>
-      <td>${adBadge}</td>
-      <td>${r.totalAds}</td>
-      <td>${details}</td>
-    </tr>`;
+    html += '<tr class="' + (isExpanded ? 'expanded' : '') + '">';
+    html += '<td class="url-cell"><a href="' + r.checkUrl + '" target="_blank">' + r.checkUrl + '</a></td>';
+    html += '<td>' + statusBadge + '</td>';
+    html += '<td>' + (r.ok ? '\u2705' : '\u274C') + '</td>';
+    html += '<td class="response-time ' + rtClass + '">' + r.responseTime + 'ms</td>';
+    html += '<td>' + adBadge + '</td>';
+    html += '<td>' + (r.activeAds || 0) + '</td>';
+    html += '<td>' + r.totalAds + '</td>';
+    html += '<td><button class="expand-btn" onclick="toggleExpand(\'' + r.checkUrl.replace(/'/g, "\\'") + '\')">' + campCount + ' campaign' + (campCount !== 1 ? 's' : '') + (isExpanded ? ' \u25B4' : ' \u25BE') + '</button></td>';
+    html += '<td>' + details + '</td>';
+    html += '</tr>';
+
+    if (isExpanded && camps.length > 0) {
+      html += '<tr class="campaign-header"><td colspan="9">Campaign | Status | Ad Group | Ad Status | Source</td></tr>';
+      for (var j = 0; j < camps.length; j++) {
+        var c = camps[j];
+        var csColor = (c.cs||'').toLowerCase() === 'enabled' ? 'var(--green)' : 'var(--muted)';
+        var asColor = (c.as||'').toLowerCase() === 'enabled' ? 'var(--green)' : 'var(--muted)';
+        html += '<tr class="campaign-row"><td colspan="9">';
+        html += '<span class="camp-name">' + (c.c || 'N/A') + '</span>';
+        html += ' &middot; <span style="color:' + csColor + '">' + (c.cs || 'N/A') + '</span>';
+        html += ' &middot; <span class="camp-group">' + (c.ag || 'N/A') + '</span>';
+        html += ' &middot; <span style="color:' + asColor + '">' + (c.as || 'N/A') + '</span>';
+        html += ' &middot; <span style="color:var(--muted);font-size:11px">' + (c.s || '') + '</span>';
+        html += '</td></tr>';
+      }
+    }
   }
   html += '</tbody></table>';
+  html += '<div style="color:var(--muted);font-size:12px;margin-top:12px;text-align:center">Showing ' + data.length + ' of ' + results.length + ' URLs</div>';
   document.getElementById('content').innerHTML = html;
 }
 
 function exportCSV() {
   if (!results.length) return alert('Run a check first');
-  const rows = [['URL','Status Code','OK','Response Time (ms)','Active Ads','Total Ads','Redirected','Final URL','Error']];
-  for (const r of results) {
-    rows.push([r.checkUrl, r.status, r.ok, r.responseTime, r.isActive, r.totalAds, r.redirected, r.finalUrl||'', r.error||'']);
+  var rows = [['URL','Status Code','OK','Soft 404','Response Time (ms)','Active Ads','Total Ads','Redirected','Final URL','Error','Campaigns']];
+  for (var i = 0; i < results.length; i++) {
+    var r = results[i];
+    var campNames = (r.campaigns||[]).map(function(c){return c.c + ' > ' + c.ag}).join('; ');
+    rows.push([r.checkUrl, r.status, r.ok, r.soft404||false, r.responseTime, r.activeAds||0, r.totalAds, r.redirected, r.finalUrl||'', r.error||'', campNames]);
   }
-  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob([csv], {type:'text/csv'});
-  const a = document.createElement('a');
+  var csv = rows.map(function(r){return r.map(function(c){return '"' + String(c).replace(/"/g,'""') + '"'}).join(',')}).join('\n');
+  var blob = new Blob([csv], {type:'text/csv'});
+  var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `url-check-${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = 'url-check-' + new Date().toISOString().slice(0,10) + '.csv';
   a.click();
 }
 
 // Auto-run on load
-window.addEventListener('load', () => setTimeout(runCheck, 500));
+window.addEventListener('load', function(){ setTimeout(runCheck, 500) });
 </script>
 </body>
 </html>

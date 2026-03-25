@@ -166,7 +166,7 @@ function setFilter(f, el) {
 
 function getFiltered() {
   var data = results.slice();
-  var q = document.getElenuntById('searchInput').value.toLowerCase();
+  var q = document.getElementById('searchInput').value.toLowerCase();
   if (q) {
     data = data.filter(function(r) {
       if (r.checkUrl.toLowerCase().indexOf(q) >= 0) return true;

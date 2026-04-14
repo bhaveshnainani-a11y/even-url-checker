@@ -56,8 +56,8 @@ BODY_404_PATTERNS = TITLE_404_PATTERNS + [
 ]
 BODY_404_RE = re.compile('|'.join(BODY_404_PATTERNS), re.IGNORECASE)
 
-# Minimum meaningful content length (chars of visible text)
-MIN_CONTENT_LENGTH = 500
+# Note: No thin content check — most landing pages are JS-rendered,
+# so server-side HTML is intentionally minimal (SPAs, React, etc.)
 
 
 async def check_single_url(client, entry):
@@ -84,7 +84,6 @@ async def check_single_url(client, entry):
         if status_ok and resp.status_code == 200:
             body_raw = resp.text
             body = body_raw[:10000].lower()
-            visible = None
 
             # 1. Title check (high confidence)
             title_match = re.search(r'<title>(.*?)</title>', body)
@@ -108,17 +107,7 @@ async def check_single_url(client, entry):
                 soft_404 = True
                 soft_reason = "Body contains error/not-found patterns"
 
-            # 4. Thin content detection — strip HTML tags and check visible text
-            if not soft_404:
-                visible = re.sub(r'<script[^>]*>.*?</script>', '', body_raw[:20000], flags=re.DOTALL | re.IGNORECASE)
-                visible = re.sub(r'<style[^>]*>.*?</style>', '', visible, flags=re.DOTALL | re.IGNORECASE)
-                visible = re.sub(r'<[^>]+>', ' ', visible)
-                visible = re.sub(r'\s+', ' ', visible).strip()
-                if len(visible) < MIN_CONTENT_LENGTH:
-                    soft_404 = True
-                    soft_reason = f"Thin content: only {len(visible)} chars of visible text"
-
-            # 5. Redirect-to-homepage detection
+            # 4. Redirect-to-homepage detection
             if not soft_404 and redirected:
                 orig_parsed = urlparse(url)
                 final_parsed = urlparse(final_url)
@@ -128,12 +117,12 @@ async def check_single_url(client, entry):
                     soft_404 = True
                     soft_reason = f"Redirected to homepage: {final_url}"
 
-            # 6. Meta noindex check (often used on error pages)
+            # 5. Meta noindex + truly empty body check
             if not soft_404:
                 noindex = re.search(r'<meta[^>]*name=["\']robots["\'][^>]*content=["\'][^"\']*noindex', body)
-                if noindex and (len(visible) if visible else len(body_raw)) < 5000:
+                if noindex and len(body_raw) < 2000:
                     soft_404 = True
-                    soft_reason = "Page has noindex meta + thin content"
+                    soft_reason = "Page has noindex meta + very small HTML"
 
         # Non-200 success codes that are suspicious
         if status_ok and resp.status_code in (204, 202) and not soft_404:
